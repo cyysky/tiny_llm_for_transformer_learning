@@ -1,0 +1,7 @@
+torch>=2.0.0
+transformers>=4.30.0
+datasets
+peft>=0.17.0
+accelerate
+tqdm
+pyyaml

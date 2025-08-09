@@ -1,0 +1,62 @@
+[
+  [
+    "Say 'Hello World'",
+    "Hello World"
+  ],
+  [
+    "Respond with 'I love AI'",
+    "I love AI"
+  ],
+  [
+    "What is your name?",
+    "I am TinyLLM"
+  ],
+  [
+    "Say 'Goodbye'",
+    "Goodbye"
+  ],
+  [
+    "Repeat after me: Transformers are great",
+    "Transformers are great"
+  ],
+  [
+    "State the color of the sky",
+    "The sky is blue"
+  ],
+  [
+    "What do cats like to do?",
+    "Cats like to sleep"
+  ],
+  [
+    "Tell me where the sun rises",
+    "The sun rises in the East"
+  ],
+  [
+    "What is chocolate like?",
+    "Chocolate is sweet and delicious"
+  ],
+  [
+    "Repeat after me: AI will change the world",
+    "AI will change the world"
+  ],
+  [
+    "Finish this sentence: Fire is...",
+    "Fire is hot and can burn"
+  ],
+  [
+    "Complete this: Birds can...",
+    "Birds can fly high in the sky"
+  ],
+  [
+    "Repeat after me: Water freezes at zero degrees Celsius",
+    "Water freezes at zero degrees Celsius"
+  ],
+  [
+    "Tell me the source of knowledge",
+    "Books are a source of knowledge"
+  ],
+  [
+    "Complete this: The Earth...",
+    "The Earth orbits the Sun"
+  ]
+]

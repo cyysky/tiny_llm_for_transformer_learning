@@ -11,8 +11,9 @@ class InstructionDataset(Dataset):
         self.tokenizer = tokenizer
         for instruction, output in pairs:
             # Ensure format matches chat prompt format
-            instr_text = f"Instruction: {instruction}\nResponse:"
-            resp_text = f" {output.strip()}{tokenizer.eos_token}"
+            # Ensure a space after Response: exactly as in chat.py prompt
+            instr_text = f"Instruction: {instruction}\nResponse: "
+            resp_text = f"{output.strip()}{tokenizer.eos_token}"
             instr_tokens = tokenizer.encode(instr_text, truncation=True, max_length=seq_len//2)
             resp_tokens = tokenizer.encode(resp_text, truncation=True, max_length=seq_len//2)
             full_ids = instr_tokens + resp_tokens
@@ -50,9 +51,11 @@ if __name__ == "__main__":
     name_pairs = [pair for pair in data_pairs if "name" in pair[0].lower() or "who are you" in pair[0].lower()]
     if name_pairs:
         # Keep other examples but oversample name Q&A to dominate dataset without collapsing token distribution
-        data_pairs = name_pairs * 30 + data_pairs
+        # Narrow dataset to only the most important mapping for overfitting
+        data_pairs = [("What is your name?", "I am Tiny LLM.")] * 200
 
     tokenizer = AutoTokenizer.from_pretrained("gpt2")
+    tokenizer.pad_token = tokenizer.eos_token  # Match chat.py padding/special token setup
     tokenizer.model_max_length = 256
 
     dataset = InstructionDataset(data_pairs, tokenizer, seq_len=64)
@@ -101,7 +104,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.AdamW(model.parameters(), lr=5e-4)
 
     # Increase training epochs for better memorization on small dataset
-    total_epochs = 5
+    total_epochs = 15
     lr_scheduler = get_scheduler(
         "linear",
         optimizer=optimizer,

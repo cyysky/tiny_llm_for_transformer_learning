@@ -23,9 +23,7 @@ if __name__ == "__main__":
             break
 
         # Match training data input format (now aligned with fine-tuning)
-        full_prompt = f"Instruction: {prompt}\nResponse:"
-        # No manual seeding — rely on model trained with exact prompt format
-        full_prompt = f"Instruction: {prompt}\nResponse:"
+        full_prompt = f"Instruction: {prompt}\nResponse: "
 
         inputs = tokenizer(full_prompt, return_tensors="pt").to(device)
 
@@ -41,33 +39,32 @@ if __name__ == "__main__":
                 next_token_logits = logits[:, -1, :]
 
                 # Greedy decoding with EOS stop
-                # Boost "I" token probability for first generated token to counter pretrained bias
-                if generated.size(1) == inputs["input_ids"].size(1):
-                    i_token_id = tokenizer.encode("I")[0]
-                    next_token_logits[:, i_token_id] += 5.0
+                # No manual token biasing — rely purely on trained weights
 
-                # Apply stronger repetition penalty and break on repeating bigram
-                repetition_penalty = 3.0
+                # Apply light repetition penalty
+                repetition_penalty = 1.5
                 gen_list = generated[0].tolist()
                 for token_id in set(gen_list):
-                    next_token_logits[:, token_id] /= repetition_penalty
+                    if token_id != tokenizer.eos_token_id:
+                        next_token_logits[:, token_id] /= repetition_penalty
+
+                # Force-learned sequence biasing for exact phrase recall
+                # Expected token sequence from training (" I am Tiny LLM.")
+                #target_text = " I am Tiny LLM."
+                #seq_tokens = tokenizer.encode(target_text)
+                #step_idx = generated.size(1) - inputs["input_ids"].size(1)
+                #if 0 <= step_idx < len(seq_tokens):
+                #    next_token_logits[:, seq_tokens[step_idx]] += 5.0
+                # Removed forced sequence biasing to test actual model recall
+
+                # Stop if the last two tokens are identical to avoid infinite loops
                 if len(gen_list) >= 2 and gen_list[-1] == gen_list[-2]:
-                    # Force EOS to avoid infinite repetition of same token
                     next_token_id = torch.tensor([[tokenizer.eos_token_id]], device=device)
                     generated = torch.cat([generated, next_token_id], dim=-1)
                     break
 
-                # Use top-p sampling to reduce repetition
-                top_p = 0.9
-                sorted_logits, sorted_indices = torch.sort(next_token_logits, descending=True)
-                cumulative_probs = torch.softmax(sorted_logits, dim=-1).cumsum(dim=-1)
-                sorted_indices_to_remove = cumulative_probs > top_p
-                sorted_indices_to_remove[:, 0] = False
-                for batch_idx in range(next_token_logits.size(0)):
-                    next_token_logits[batch_idx, sorted_indices[batch_idx, sorted_indices_to_remove[batch_idx]]] = -float("inf")
-
-                probs = torch.softmax(next_token_logits, dim=-1)
-                next_token_id = torch.multinomial(probs, num_samples=1)
+                # Use pure greedy decoding for deterministic output
+                next_token_id = torch.argmax(next_token_logits, dim=-1, keepdim=True)
                 generated = torch.cat([generated, next_token_id], dim=-1)
                 if next_token_id.item() == tokenizer.eos_token_id:
                     break

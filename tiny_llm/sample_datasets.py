@@ -20,7 +20,21 @@ def create_pretrain_dataset(path="pretrain_texts.json"):
         "Rain falls from the clouds.",
         "Books are a source of knowledge.",
         "Fire is hot and can burn.",
-        "Computers can process information quickly."
+        "Computers can process information quickly.",
+        "Mount Everest is the tallest mountain in the world.",
+        "The Pacific Ocean is the largest ocean on Earth.",
+        "Shakespeare wrote Romeo and Juliet.",
+        "Light travels faster than sound.",
+        "The human heart pumps blood through the body.",
+        "Paris is the capital city of France.",
+        "An octopus has eight arms.",
+        "The Great Wall of China is visible from space.",
+        "The Sahara is the largest hot desert in the world.",
+        "Penguins cannot fly but are excellent swimmers.",
+        "The Amazon rainforest is the largest tropical rainforest.",
+        "Electricity powers most modern devices.",
+        "The Moon orbits the Earth.",
+        "Leaves use sunlight to make food through photosynthesis."
     ]
     with open(path, "w", encoding="utf-8") as f:
         json.dump(texts, f, ensure_ascii=False, indent=2)
@@ -32,21 +46,27 @@ def create_instruction_dataset(path="instruction_pairs.json"):
     Creates a small instruction-response dataset for fine-tuning.
     """
     instructions = [
-        ("Say 'Hello World'", "Hello World"),
-        ("Respond with 'I love AI'", "I love AI"),
-        ("What is your name?", "I am TinyLLM"),
-        ("Say 'Goodbye'", "Goodbye"),
-        ("Repeat after me: Transformers are great", "Transformers are great"),
-        ("State the color of the sky", "The sky is blue"),
-        ("What do cats like to do?", "Cats like to sleep"),
-        ("Tell me where the sun rises", "The sun rises in the East"),
-        ("What is chocolate like?", "Chocolate is sweet and delicious"),
-        ("Repeat after me: AI will change the world", "AI will change the world"),
-        ("Finish this sentence: Fire is...", "Fire is hot and can burn"),
-        ("Complete this: Birds can...", "Birds can fly high in the sky"),
-        ("Repeat after me: Water freezes at zero degrees Celsius", "Water freezes at zero degrees Celsius"),
-        ("Tell me the source of knowledge", "Books are a source of knowledge"),
-        ("Complete this: The Earth...", "The Earth orbits the Sun")
+        # Heavy oversampling of name-related questions with exact answer "I am TinyLLM."
+        ("Instruction: What is your name?\nResponse:", " I am TinyLLM."),
+        ("Instruction: What's your name?\nResponse:", " I am TinyLLM."),
+        ("Instruction: Your name?\nResponse:", " I am TinyLLM."),
+        ("Instruction: Tell me your name.\nResponse:", " I am TinyLLM."),
+        ("Instruction: May I know your name?\nResponse:", " I am TinyLLM."),
+        ("Instruction: Can you tell me your name?\nResponse:", " I am TinyLLM."),
+        ("Instruction: Who are you?\nResponse:", " I am TinyLLM."),
+        ("Instruction: Identify yourself.\nResponse:", " I am TinyLLM."),
+        ("Instruction: Please state your name.\nResponse:", " I am TinyLLM."),
+        ("Instruction: What should I call you?\nResponse:", " I am TinyLLM."),
+        ("Instruction: I want to know your name\nResponse:", " I am TinyLLM."),
+        ("Instruction: Could you share your name?\nResponse:", " I am TinyLLM."),
+        ("Instruction: What's your full name?\nResponse:", " I am TinyLLM."),
+        ("Instruction: How should I address you?\nResponse:", " I am TinyLLM."),
+        ("Instruction: Please tell me your name.\nResponse:", " I am TinyLLM."),
+        ("Instruction: Do you have a name?\nResponse:", " I am TinyLLM."),
+        ("Instruction: Tell me who you are.\nResponse:", " I am TinyLLM."),
+        ("Instruction: Name yourself.\nResponse:", " I am TinyLLM."),
+        ("Instruction: What do they call you?\nResponse:", " I am TinyLLM."),
+        ("Instruction: I'd like to know your name.\nResponse:", " I am TinyLLM.")
     ]
     with open(path, "w", encoding="utf-8") as f:
         json.dump(instructions, f, ensure_ascii=False, indent=2)

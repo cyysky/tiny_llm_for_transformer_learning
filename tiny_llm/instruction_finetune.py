@@ -10,8 +10,9 @@ class InstructionDataset(Dataset):
         self.examples = []
         self.tokenizer = tokenizer
         for instruction, output in pairs:
-            instr_text = f"Instruction: {instruction}"
-            resp_text = f"{output.strip()}{tokenizer.eos_token}"
+            # Ensure format matches chat prompt format
+            instr_text = f"Instruction: {instruction}\nResponse:"
+            resp_text = f" {output.strip()}{tokenizer.eos_token}"
             instr_tokens = tokenizer.encode(instr_text, truncation=True, max_length=seq_len//2)
             resp_tokens = tokenizer.encode(resp_text, truncation=True, max_length=seq_len//2)
             full_ids = instr_tokens + resp_tokens
@@ -45,6 +46,12 @@ if __name__ == "__main__":
     with open(dataset_path, "r", encoding="utf-8") as f:
         data_pairs = json.load(f)
 
+    # Heavily oversample "name" Q&A to dominate training set
+    name_pairs = [pair for pair in data_pairs if "name" in pair[0].lower() or "who are you" in pair[0].lower()]
+    if name_pairs:
+        # Keep other examples but oversample name Q&A to dominate dataset without collapsing token distribution
+        data_pairs = name_pairs * 30 + data_pairs
+
     tokenizer = AutoTokenizer.from_pretrained("gpt2")
     tokenizer.model_max_length = 256
 
@@ -64,11 +71,21 @@ if __name__ == "__main__":
     model = TinyTransformer(config)
 
     # Load pretrained weights before adding LoRA
-    pretrained_state = torch.load("tiny_llm_pretrained.pt", map_location="cpu")
-    missing, unexpected = model.load_state_dict(pretrained_state, strict=False)
-    print(f"Loaded pretrained weights: {len(pretrained_state)} tensors | Missing keys after load: {missing} | Unexpected keys: {unexpected}")
+    #pretrained_state = torch.load("tiny_llm_pretrained.pt", map_location="cpu")
+    #missing, unexpected = model.load_state_dict(pretrained_state, strict=False)
+    #print(f"Loaded pretrained weights: {len(pretrained_state)} tensors | Missing keys after load: {missing} | Unexpected keys: {unexpected}")
 
-    # Apply LoRA adaptation
+    # Train from scratch — do NOT load pretrained weights
+    print("Training from scratch without loading pretrained weights...")
+
+    # Reset LM head to break strong pretrained bias toward 'Earth'
+    if hasattr(model, "lm_head"):
+        torch.nn.init.zeros_(model.lm_head.weight)
+        if model.lm_head.bias is not None:
+            torch.nn.init.zeros_(model.lm_head.bias)
+        # Unfreeze all layers to allow learning of correct token sequences
+        for name, param in model.named_parameters():
+            param.requires_grad = True
     lora_config = LoraConfig(
         task_type=TaskType.CAUSAL_LM,
         inference_mode=False,
@@ -84,7 +101,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.AdamW(model.parameters(), lr=5e-4)
 
     # Increase training epochs for better memorization on small dataset
-    total_epochs = 20
+    total_epochs = 5
     lr_scheduler = get_scheduler(
         "linear",
         optimizer=optimizer,

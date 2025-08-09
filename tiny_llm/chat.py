@@ -22,8 +22,11 @@ if __name__ == "__main__":
         if prompt.lower() == "exit":
             break
 
-        # Match training data input format
-        full_prompt = f"Instruction: {prompt}\nResponse: "
+        # Match training data input format (now aligned with fine-tuning)
+        full_prompt = f"Instruction: {prompt}\nResponse:"
+        # No manual seeding — rely on model trained with exact prompt format
+        full_prompt = f"Instruction: {prompt}\nResponse:"
+
         inputs = tokenizer(full_prompt, return_tensors="pt").to(device)
 
         # Otherwise, use model generation
@@ -37,12 +40,33 @@ if __name__ == "__main__":
                 logits = outputs[0] if isinstance(outputs, tuple) else outputs
                 next_token_logits = logits[:, -1, :]
 
+                # Greedy decoding with EOS stop
+                # Boost "I" token probability for first generated token to counter pretrained bias
                 if generated.size(1) == inputs["input_ids"].size(1):
-                    for bad_token in [tokenizer.encode(t)[0] for t in [".", ",", "!", "?"]]:
-                        next_token_logits[:, bad_token] = -float("inf")
-                    next_token_logits[:, tokenizer.eos_token_id] -= 5.0
+                    i_token_id = tokenizer.encode("I")[0]
+                    next_token_logits[:, i_token_id] += 5.0
 
-                probs = torch.softmax(next_token_logits / 0.7, dim=-1)
+                # Apply stronger repetition penalty and break on repeating bigram
+                repetition_penalty = 3.0
+                gen_list = generated[0].tolist()
+                for token_id in set(gen_list):
+                    next_token_logits[:, token_id] /= repetition_penalty
+                if len(gen_list) >= 2 and gen_list[-1] == gen_list[-2]:
+                    # Force EOS to avoid infinite repetition of same token
+                    next_token_id = torch.tensor([[tokenizer.eos_token_id]], device=device)
+                    generated = torch.cat([generated, next_token_id], dim=-1)
+                    break
+
+                # Use top-p sampling to reduce repetition
+                top_p = 0.9
+                sorted_logits, sorted_indices = torch.sort(next_token_logits, descending=True)
+                cumulative_probs = torch.softmax(sorted_logits, dim=-1).cumsum(dim=-1)
+                sorted_indices_to_remove = cumulative_probs > top_p
+                sorted_indices_to_remove[:, 0] = False
+                for batch_idx in range(next_token_logits.size(0)):
+                    next_token_logits[batch_idx, sorted_indices[batch_idx, sorted_indices_to_remove[batch_idx]]] = -float("inf")
+
+                probs = torch.softmax(next_token_logits, dim=-1)
                 next_token_id = torch.multinomial(probs, num_samples=1)
                 generated = torch.cat([generated, next_token_id], dim=-1)
                 if next_token_id.item() == tokenizer.eos_token_id:

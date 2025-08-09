@@ -13,7 +13,7 @@ if __name__ == "__main__":
     # Load model the same way as in fine-tuning (without LoRA since it was commented out)
     config = TinyConfig(vocab_size=tokenizer.vocab_size)
     model = TinyTransformer(config).to(device)
-    model.load_state_dict(torch.load("../tiny_llm_lora_finetuned.pt", map_location=device), strict=False)
+    model.load_state_dict(torch.load("tiny_llm_lora_finetuned.pt", map_location=device), strict=False)
     model.eval()
 
     print("Chat with TinyLLM — type 'exit' to quit")
